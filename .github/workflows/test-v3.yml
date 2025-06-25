@@ -1,33 +1,17 @@
-name: Test Command
-on:
-  repository_dispatch:
-    types: [test-command]
+name: Test v3
+on: workflow_dispatch
 jobs:
   testCreateOrUpdateComment:
     runs-on: ubuntu-latest
     steps:
-      # Get the target repository and branch
-      - name: Get the target repository and branch
-        id: vars
-        run: |
-          repository=${{ github.event.client_payload.slash_command.repository }}
-          if [[ -z "$repository" ]]; then repository=${{ github.repository }}; fi
-          echo "repository=$repository" >> $GITHUB_OUTPUT
-          branch=${{ github.event.client_payload.slash_command.branch }}
-          if [[ -z "$branch" ]]; then branch="main"; fi
-          echo "branch=$branch" >> $GITHUB_OUTPUT
-
-      # Checkout the branch to test
       - uses: actions/checkout@v4
-        with:
-          repository: ${{ steps.vars.outputs.repository }}
-          ref: ${{ steps.vars.outputs.branch }}
 
       # Test create
       - name: Create comment
-        uses: ./
+        uses: peter-evans/create-or-update-comment@v4
         id: couc
         with:
+          token: ${{ secrets.ACTIONS_BOT_TOKEN }}
           issue-number: 1
           body: |
             This is a multi-line test comment
@@ -39,8 +23,9 @@ jobs:
 
       # Test update
       - name: Update comment
-        uses: ./
+        uses: peter-evans/create-or-update-comment@v4
         with:
+          token: ${{ secrets.ACTIONS_BOT_TOKEN }}
           comment-id: ${{ steps.couc.outputs.comment-id }}
           body: |
             **Edit:** Some additional info
@@ -49,17 +34,19 @@ jobs:
 
       # Test add reactions
       - name: Add reactions
-        uses: ./
+        uses: peter-evans/create-or-update-comment@v4
         with:
+          token: ${{ secrets.ACTIONS_BOT_TOKEN }}
           comment-id: ${{ steps.couc.outputs.comment-id }}
           reactions: heart, hooray, laugh
 
       # Test create with body from file
       - name: Create comment
-        uses: ./
+        uses: peter-evans/create-or-update-comment@v4
         with:
+          token: ${{ secrets.ACTIONS_BOT_TOKEN }}
           issue-number: 1
-          body-path: .github/comment-body.md
+          body-file: .github/comment-body.md
 
       # Test create from template
       - name: Render template
@@ -72,14 +59,8 @@ jobs:
             bar: that
 
       - name: Create comment
-        uses: ./
-        with:
-          issue-number: 1
-          body: ${{ steps.template.outputs.result }}
-
-      - name: Add reaction
         uses: peter-evans/create-or-update-comment@v4
         with:
-          repository: ${{ github.event.client_payload.github.payload.repository.full_name }}
-          comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
-          reactions: hooray
+          token: ${{ secrets.ACTIONS_BOT_TOKEN }}
+          issue-number: 1
+          body: ${{ steps.template.outputs.result }}
